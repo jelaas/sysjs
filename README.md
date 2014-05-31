@@ -7,15 +7,21 @@ Uses duktape for javascript vm.
 
 Examples
 ========
+
 cli.js
 =========
+
+```
 Sys=Sys1;
 Sys.dprint(1, "Number of arguments: "+Sys.argc + "\n");
 for(i=0;i<Sys.argc;i++)
     Sys.dprint(1, i + ": "+ Sys[i] + "\n");
+```
 
 daemon.js
 =========
+
+```
 var Sys=Sys1;
 
 pid = Sys.fork();
@@ -34,9 +40,12 @@ if(fd > 2) Sys.close(fd);
 while(1) {
     Sys.sleep(10);
 }
+```
 
 file.js
 =========
+
+```
 Sys=Sys1;
 
 fd = Sys.open('/etc/passwd', Sys.O_RDONLY, 0);
@@ -49,18 +58,24 @@ Sys.close(fd);
 
 stat=Sys.lstat('/etc/group');
 Sys.dprint(1, JSON.stringify(stat)+"\n");
+```
 
 pipes.js
 =========
+
+```
 Sys=Sys1;
 
 fds = Sys.pipe();
 Sys.dprint(1, fds.rc + "\n");
 Sys.dprint(1, fds[0] + "\n");
 Sys.dprint(1, fds[1] + "\n"); 
+```
 
 poll.js
 =========
+
+```
 Sys=Sys1;
 
 while(1) {
@@ -76,18 +91,24 @@ while(1) {
 	}
     }
 }
+```
 
 tcpclient.js
 =========
+
+```
 Sys=Sys1;
 fd = Sys.socket(Sys.AF_INET, Sys.SOCK_STREAM, Sys.IPPROTO_TCP);
 Sys.connect(fd, { in: '127.0.0.1', port: 80 });
 Sys.dprint(fd, "Hello");
 Sys.close(fd);
 
+```
 
 tcpserver.js
 =========
+
+```
 Sys=Sys1;
 
 fd = Sys.socket(Sys.AF_INET, Sys.SOCK_STREAM, Sys.IPPROTO_TCP);
@@ -102,9 +123,12 @@ while(1) {
 	Sys.close(res.rc);
     }
 }
+```
 
 wait.js
 =========
+
+```
 Sys=Sys1;
 
 pid = Sys.fork();
@@ -115,4 +139,5 @@ if(pid == 0) {
 
 r = Sys.waitpid(pid, 0);
 Sys.dprint(1, JSON.stringify(r) + "\n");
+```
 
