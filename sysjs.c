@@ -21,6 +21,7 @@
 #include <errno.h>
 #include <sys/wait.h>
 #include <poll.h>
+#include <signal.h>
 
 #include <stdio.h>
 #include "duktape.h"
@@ -531,6 +532,45 @@ int sys1_errno(duk_context *ctx)
 	return 1;
 }
 
+int sys1_umask(duk_context *ctx)
+{
+	mode_t mask = duk_to_int(ctx, 0);
+	mode_t rc;
+
+	rc = umask(mask);
+	duk_push_int(ctx, rc);
+	return 1;
+}
+
+int sys1_kill(duk_context *ctx)
+{
+	int pid = duk_to_int(ctx, 0);
+	int sig = duk_to_int(ctx, 1);
+	int rc;
+	
+	rc = kill(pid, sig);
+	duk_push_int(ctx, rc);
+	return 1;
+}
+
+int sys1_getpid(duk_context *ctx)
+{
+	pid_t rc;
+
+	rc = getpid();
+	duk_push_int(ctx, rc);
+	return 1;
+}
+
+int sys1_getppid(duk_context *ctx)
+{
+	pid_t rc;
+
+	rc = getppid();
+	duk_push_int(ctx, rc);
+	return 1;
+}
+
 int sys1_exit(duk_context *ctx)
 {
 	int code = duk_to_int(ctx, 0);
@@ -584,29 +624,48 @@ const duk_function_list_entry sys1_funcs[] = {
 	{ "accept", sys1_accept, 1 /* fd */ },
 	{ "bind", sys1_bind, 2 /* fd, obj { in, in6, un, una, port } */ },
 	{ "chdir", sys1_chdir, 1 },
+//	{ "chmod", sys1_chmod, 2 },
 	{ "close", sys1_close, 1 /* fd */ },
 	{ "connect", sys1_connect, 2 /* fd, obj { in, in6, un, una, port } */ },
 	{ "dprint", sys1_dprint, 2 /* fd, string */ },
 //      { "dprintf", sys1_dprintf, DUK_VARARGS },
 	{ "dup2", sys1_dup2, 2 },
 	{ "errno", sys1_errno, 0 },
+//	{ "execve", sys1_execve, 3 },
 	{ "exit", sys1_exit, 1 },
 	{ "_exit", sys1__exit, 1 },
+//	{ "fchmod", sys1_fchmod, 2 },
+//	{ "fcntl", sys1_fcntl, 3 },
 	{ "fork", sys1_fork, 1 },
 	{ "fstat", sys1_fstat, 1 },
+	{ "getpid", sys1_getpid, 0 },
+	{ "getppid", sys1_getppid, 0 },
+//	{ "gmtime", sys1_gmtime, 1 },
+	{ "kill", sys1_kill, 2 },
 	{ "listen", sys1_listen, 2 /* fd, backlog */ },
+//	{ "localtime", sys1_localtime, 1 },
 	{ "lseek", sys1_lseek, 3 },
 	{ "lstat", sys1_lstat, 1 },
+//	{ "mmap", sys1_mmap, 6 },
+//	{ "mount", sys1_mount, 5 },
 	{ "open", sys1_open, 3 /* filename, flags, mode */ },
 	{ "pipe", sys1_pipe, 0 },
 	{ "poll", sys1_poll, 3 },
 	{ "read", sys1_read, 2 /* fd, count */ },
+//      { "rename", sys1_rename, 2 },
         { "setsid", sys1_setsid, 0 },
 	{ "setsockopt", sys1_setsockopt, 4 },
 	{ "sleep", sys1_sleep, 1 },
 	{ "socket", sys1_socket, 3 /* domain, type, protocol */ },
 	{ "stat", sys1_stat, 1 },
 	{ "strerror", sys1_strerror, 1 },
+//	{ "tcgetattr", sys1_umount , 3 },
+//	{ "tcsetattr", sys1_umount , 3 },
+	{ "umask", sys1_umask , 1 },
+//	{ "umount", sys1_umount , 1 },
+//	{ "umount2", sys1_umount2 , 2 },
+//	{ "unlink", sys1_unlink , 1 },
+//	{ "unshare", sys1_unshare, 1 },
 	{ "waitpid", sys1_waitpid, 2 },
 	{ "write", sys1_write, 3 /* fd, buffer, count */ },
 	{ NULL, NULL, 0 }
