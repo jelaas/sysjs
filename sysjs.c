@@ -519,6 +519,30 @@ int sys1_chdir(duk_context *ctx)
 	return 1;
 }
 
+int sys1_chmod(duk_context *ctx)
+{
+	const char *path = duk_to_string(ctx, 0);
+	mode_t mode = duk_to_int(ctx, 1);
+	int rc;
+
+	rc = chmod(path, mode);
+
+	duk_push_int(ctx, rc);
+	return 1;
+}
+
+int sys1_fchmod(duk_context *ctx)
+{
+	int fd = duk_to_int(ctx, 0);
+	mode_t mode = duk_to_int(ctx, 1);
+	int rc;
+
+	rc = fchmod(fd, mode);
+
+	duk_push_int(ctx, rc);
+	return 1;
+}
+
 int sys1_strerror(duk_context *ctx)
 {
 	int num = duk_to_int(ctx, 0);
@@ -624,7 +648,7 @@ const duk_function_list_entry sys1_funcs[] = {
 	{ "accept", sys1_accept, 1 /* fd */ },
 	{ "bind", sys1_bind, 2 /* fd, obj { in, in6, un, una, port } */ },
 	{ "chdir", sys1_chdir, 1 },
-//	{ "chmod", sys1_chmod, 2 },
+	{ "chmod", sys1_chmod, 2 },
 	{ "close", sys1_close, 1 /* fd */ },
 	{ "connect", sys1_connect, 2 /* fd, obj { in, in6, un, una, port } */ },
 	{ "dprint", sys1_dprint, 2 /* fd, string */ },
@@ -634,7 +658,7 @@ const duk_function_list_entry sys1_funcs[] = {
 //	{ "execve", sys1_execve, 3 },
 	{ "exit", sys1_exit, 1 },
 	{ "_exit", sys1__exit, 1 },
-//	{ "fchmod", sys1_fchmod, 2 },
+	{ "fchmod", sys1_fchmod, 2 },
 //	{ "fcntl", sys1_fcntl, 3 },
 	{ "fork", sys1_fork, 1 },
 	{ "fstat", sys1_fstat, 1 },
