@@ -32,107 +32,65 @@ struct {
 	off_t size;
 } prg;
 
-static int sys1_open(duk_context *ctx)
+static int sys1_push_stat(duk_context *ctx, struct stat *stat)
 {
-	int fd;
-	
-	const char *path = duk_to_string(ctx, 0);
-	uint32_t flags = duk_to_uint32(ctx, 1);
-	int mode = duk_to_int(ctx, 2);
-
-	fd = open(path, flags, mode);
-	
-	duk_push_number(ctx, fd);
-	return 1;
+	duk_push_object(ctx);
+	duk_push_int(ctx, stat->st_dev);
+	duk_put_prop_string(ctx, -2, "st_dev");
+	duk_push_int(ctx, stat->st_ino);
+	duk_put_prop_string(ctx, -2, "st_ino");
+	duk_push_int(ctx, stat->st_mode);
+	duk_put_prop_string(ctx, -2, "st_mode");
+	duk_push_int(ctx, stat->st_nlink);
+	duk_put_prop_string(ctx, -2, "st_nlink");
+	duk_push_int(ctx, stat->st_uid);
+	duk_put_prop_string(ctx, -2, "st_uid");
+	duk_push_int(ctx, stat->st_gid);
+	duk_put_prop_string(ctx, -2, "st_gid");
+	duk_push_int(ctx, stat->st_rdev);
+	duk_put_prop_string(ctx, -2, "st_rdev");
+	duk_push_int(ctx, stat->st_size);
+	duk_put_prop_string(ctx, -2, "st_size");
+	duk_push_int(ctx, stat->st_blksize);
+	duk_put_prop_string(ctx, -2, "st_blklsize");
+	duk_push_int(ctx, stat->st_blocks);
+	duk_put_prop_string(ctx, -2, "st_blocks");
+	duk_push_int(ctx, stat->st_atime);
+	duk_put_prop_string(ctx, -2, "st_atime");
+	duk_push_int(ctx, stat->st_mtime);
+	duk_put_prop_string(ctx, -2, "st_mtime");
+	duk_push_int(ctx, stat->st_ctime);
+	duk_put_prop_string(ctx, -2, "st_ctime");
+	return 0;
 }
 
-static int sys1_socket(duk_context *ctx)
+static int sys1_accept(duk_context *ctx)
 {
-	int fd;
-
-	int domain = duk_to_int(ctx, 0);
-	int type = duk_to_int(ctx, 1);
-	int protocol = duk_to_int(ctx, 2);
-
-	fd = socket(domain, type, protocol);
-	
-	duk_push_number(ctx, fd);
-	return 1;	
-}
-
-static int sys1_sleep(duk_context *ctx)
-{
-	int rc;
-
-	int seconds = duk_to_int(ctx, 0);
-
-	rc = sleep(seconds);
-	
-	duk_push_number(ctx, rc);
-	return 1;
-}
-
-static int sys1_listen(duk_context *ctx)
-{
-	int rc;
-
 	int fd = duk_to_int(ctx, 0);
-	int backlog = duk_to_int(ctx, 1);
-
-	rc = listen(fd, backlog);
+	ssize_t rc;
+	char buf[64];
+	union {
+		struct sockaddr dst;
+		struct sockaddr_in dst4;
+		struct sockaddr_in6 dst6;
+		struct sockaddr_un dstun;
+	} addr;
+	socklen_t addrlen = sizeof(addr);
 	
-	duk_push_number(ctx, rc);
-	return 1;	
-}
+	memset(&addr, 0, sizeof(addr));
 
-static int sys1_dup2(duk_context *ctx)
-{
-	int rc;
-
-	int oldfd = duk_to_int(ctx, 0);
-	int newfd = duk_to_int(ctx, 1);
-
-	rc = dup2(oldfd, newfd);
-	
-	duk_push_number(ctx, rc);
-	return 1;	
-}
-
-
-static int sys1_poll(duk_context *ctx)
-{
-	int nfds = duk_to_int(ctx, 1);
-	int timeout = duk_to_int(ctx, 2);
-	int i, rc;
-	struct pollfd *fds;
-
-	fds = malloc(sizeof(struct pollfd)*nfds);
-	memset(fds, 0, sizeof(struct pollfd)*nfds);
-	
-	for(i=0;i<nfds;i++) {
-		duk_get_prop_index(ctx, 0, i);
-		duk_get_prop_string(ctx, 3, "fd");	
-		fds[i].fd = duk_to_int(ctx, 4);
-		duk_get_prop_string(ctx, 3, "events");	
-		fds[i].events = duk_to_int(ctx, 5);
-		duk_pop_n(ctx, 3);
-	}
-
-	rc = poll(fds, nfds, timeout);
+	rc = accept(fd, &addr.dst, &addrlen);
 
 	duk_push_object(ctx);
+	
 	duk_push_int(ctx, rc);
 	duk_put_prop_string(ctx, -2, "rc");
-	duk_push_array(ctx);
-	for(i=0;i<nfds;i++) {
-		duk_push_object(ctx);
-		duk_push_int(ctx, fds[i].fd);
-		duk_put_prop_string(ctx, -2, "fd");
-		duk_push_int(ctx, fds[i].revents);
-		duk_put_prop_string(ctx, -2, "revents");
-		duk_put_prop_index(ctx, -2, i);
+	duk_push_int(ctx, addr.dst.sa_family);
+	duk_put_prop_string(ctx, -2, "family");
+	if((addr.dst.sa_family == AF_INET) && inet_ntop(addr.dst.sa_family, &addr.dst4.sin_addr, buf, sizeof(buf))) {
+		duk_push_string(ctx, buf);
+		duk_put_prop_string(ctx, -2, "addr");
 	}
-	duk_put_prop_string(ctx, -2, "fds");
 
 	return 1;
 }
@@ -213,6 +171,39 @@ out:
 	return 1;
 }
 
+static int sys1_chdir(duk_context *ctx)
+{
+	const char *path = duk_to_string(ctx, 0);
+	int rc;
+
+	rc = chdir(path);
+
+	duk_push_int(ctx, rc);
+	return 1;
+}
+
+static int sys1_chmod(duk_context *ctx)
+{
+	const char *path = duk_to_string(ctx, 0);
+	mode_t mode = duk_to_int(ctx, 1);
+	int rc;
+
+	rc = chmod(path, mode);
+
+	duk_push_int(ctx, rc);
+	return 1;
+}
+
+static int sys1_close(duk_context *ctx)
+{
+	int fd = duk_to_int(ctx, 0);
+	
+	int rc  = close(fd);
+	
+	duk_push_number(ctx, rc);
+	return 1;
+}
+
 static int sys1_connect(duk_context *ctx)
 {
 	int rc;
@@ -289,26 +280,223 @@ out:
 	return 1;
 }
 
-
-static int sys1_close(duk_context *ctx)
+static int sys1_dprint(duk_context *ctx)
 {
 	int fd = duk_to_int(ctx, 0);
-	
-	int rc  = close(fd);
-	
-	duk_push_number(ctx, rc);
+	const char *buf = duk_to_string(ctx, 1);
+	int len;
+	ssize_t rc;
+
+	len = strlen(buf);
+
+	rc = write(fd, buf, len);
+
+	duk_push_int(ctx, rc);
 	return 1;
 }
 
-static int sys1_setsid(duk_context *ctx)
+static int sys1_dup2(duk_context *ctx)
 {
-	duk_push_number(ctx, setsid());
+	int rc;
+
+	int oldfd = duk_to_int(ctx, 0);
+	int newfd = duk_to_int(ctx, 1);
+
+	rc = dup2(oldfd, newfd);
+	
+	duk_push_number(ctx, rc);
+	return 1;	
+}
+
+static int sys1_errno(duk_context *ctx)
+{
+	duk_push_int(ctx, errno);
+	return 1;
+}
+
+static int sys1_exit(duk_context *ctx)
+{
+	int code = duk_to_int(ctx, 0);
+
+	exit(code);
+
+	return 1;
+}
+
+static int sys1__exit(duk_context *ctx)
+{
+	int code = duk_to_int(ctx, 0);
+
+	_exit(code);
+
+	return 1;
+}
+
+static int sys1_fchmod(duk_context *ctx)
+{
+	int fd = duk_to_int(ctx, 0);
+	mode_t mode = duk_to_int(ctx, 1);
+	int rc;
+
+	rc = fchmod(fd, mode);
+
+	duk_push_int(ctx, rc);
 	return 1;
 }
 
 static int sys1_fork(duk_context *ctx)
 {
 	duk_push_number(ctx, fork());
+	return 1;
+}
+
+static int sys1_fstat(duk_context *ctx)
+{
+	int fd = duk_to_int(ctx, 0);
+	struct stat stat;
+	int rc;
+	
+	rc = fstat(fd, &stat);
+	sys1_push_stat(ctx, &stat);
+	duk_push_int(ctx, rc);
+	duk_put_prop_string(ctx, -2, "rc");
+	return 1;
+}
+
+static int sys1_getpid(duk_context *ctx)
+{
+	pid_t rc;
+
+	rc = getpid();
+	duk_push_int(ctx, rc);
+	return 1;
+}
+
+static int sys1_getppid(duk_context *ctx)
+{
+	pid_t rc;
+
+	rc = getppid();
+	duk_push_int(ctx, rc);
+	return 1;
+}
+
+static int sys1_kill(duk_context *ctx)
+{
+	int pid = duk_to_int(ctx, 0);
+	int sig = duk_to_int(ctx, 1);
+	int rc;
+	
+	rc = kill(pid, sig);
+	duk_push_int(ctx, rc);
+	return 1;
+}
+
+static int sys1_listen(duk_context *ctx)
+{
+	int rc;
+
+	int fd = duk_to_int(ctx, 0);
+	int backlog = duk_to_int(ctx, 1);
+
+	rc = listen(fd, backlog);
+	
+	duk_push_number(ctx, rc);
+	return 1;	
+}
+
+static int sys1_lseek(duk_context *ctx)
+{
+	int fd = duk_to_int(ctx, 0);
+	off_t offset = duk_to_int(ctx, 1);
+	int whence = duk_to_int(ctx, 2);
+	off_t rc;
+
+	rc = lseek(fd, offset, whence);
+
+	duk_push_int(ctx, rc);
+	return 1;
+}
+
+static int sys1_lstat(duk_context *ctx)
+{
+	const char *path = duk_to_string(ctx, 0);
+	struct stat stat;
+	int rc;
+	
+	rc = lstat(path, &stat);
+	sys1_push_stat(ctx, &stat);
+	duk_push_int(ctx, rc);
+	duk_put_prop_string(ctx, -2, "rc");
+	return 1;
+}
+
+static int sys1_open(duk_context *ctx)
+{
+	int fd;
+	
+	const char *path = duk_to_string(ctx, 0);
+	uint32_t flags = duk_to_uint32(ctx, 1);
+	int mode = duk_to_int(ctx, 2);
+
+	fd = open(path, flags, mode);
+	
+	duk_push_number(ctx, fd);
+	return 1;
+}
+
+static int sys1_pipe(duk_context *ctx)
+{
+	int rc;
+	int fd[2];
+	
+	rc = pipe(fd);
+
+	duk_push_object(ctx);
+	duk_push_int(ctx, rc);
+	duk_put_prop_string(ctx, -2, "rc");
+	duk_push_int(ctx, fd[0]);
+	duk_put_prop_index(ctx, -2, 0);
+	duk_push_int(ctx, fd[1]);
+	duk_put_prop_index(ctx, -2, 1);
+	return 1;
+}
+
+static int sys1_poll(duk_context *ctx)
+{
+	int nfds = duk_to_int(ctx, 1);
+	int timeout = duk_to_int(ctx, 2);
+	int i, rc;
+	struct pollfd *fds;
+
+	fds = malloc(sizeof(struct pollfd)*nfds);
+	memset(fds, 0, sizeof(struct pollfd)*nfds);
+	
+	for(i=0;i<nfds;i++) {
+		duk_get_prop_index(ctx, 0, i);
+		duk_get_prop_string(ctx, 3, "fd");	
+		fds[i].fd = duk_to_int(ctx, 4);
+		duk_get_prop_string(ctx, 3, "events");	
+		fds[i].events = duk_to_int(ctx, 5);
+		duk_pop_n(ctx, 3);
+	}
+
+	rc = poll(fds, nfds, timeout);
+
+	duk_push_object(ctx);
+	duk_push_int(ctx, rc);
+	duk_put_prop_string(ctx, -2, "rc");
+	duk_push_array(ctx);
+	for(i=0;i<nfds;i++) {
+		duk_push_object(ctx);
+		duk_push_int(ctx, fds[i].fd);
+		duk_put_prop_string(ctx, -2, "fd");
+		duk_push_int(ctx, fds[i].revents);
+		duk_put_prop_string(ctx, -2, "revents");
+		duk_put_prop_index(ctx, -2, i);
+	}
+	duk_put_prop_string(ctx, -2, "fds");
+
 	return 1;
 }
 
@@ -331,20 +519,35 @@ static int sys1_read(duk_context *ctx)
 	return 1;
 }
 
-static int sys1_pipe(duk_context *ctx)
+static int sys1_socket(duk_context *ctx)
+{
+	int fd;
+
+	int domain = duk_to_int(ctx, 0);
+	int type = duk_to_int(ctx, 1);
+	int protocol = duk_to_int(ctx, 2);
+
+	fd = socket(domain, type, protocol);
+	
+	duk_push_number(ctx, fd);
+	return 1;	
+}
+
+static int sys1_sleep(duk_context *ctx)
 {
 	int rc;
-	int fd[2];
-	
-	rc = pipe(fd);
 
-	duk_push_object(ctx);
-	duk_push_int(ctx, rc);
-	duk_put_prop_string(ctx, -2, "rc");
-	duk_push_int(ctx, fd[0]);
-	duk_put_prop_index(ctx, -2, 0);
-	duk_push_int(ctx, fd[1]);
-	duk_put_prop_index(ctx, -2, 1);
+	int seconds = duk_to_int(ctx, 0);
+
+	rc = sleep(seconds);
+	
+	duk_push_number(ctx, rc);
+	return 1;
+}
+
+static int sys1_setsid(duk_context *ctx)
+{
+	duk_push_number(ctx, setsid());
 	return 1;
 }
 
@@ -373,51 +576,6 @@ static int sys1_waitpid(duk_context *ctx)
 	return 1;
 }
 
-static int sys1_push_stat(duk_context *ctx, struct stat *stat)
-{
-	duk_push_object(ctx);
-	duk_push_int(ctx, stat->st_dev);
-	duk_put_prop_string(ctx, -2, "st_dev");
-	duk_push_int(ctx, stat->st_ino);
-	duk_put_prop_string(ctx, -2, "st_ino");
-	duk_push_int(ctx, stat->st_mode);
-	duk_put_prop_string(ctx, -2, "st_mode");
-	duk_push_int(ctx, stat->st_nlink);
-	duk_put_prop_string(ctx, -2, "st_nlink");
-	duk_push_int(ctx, stat->st_uid);
-	duk_put_prop_string(ctx, -2, "st_uid");
-	duk_push_int(ctx, stat->st_gid);
-	duk_put_prop_string(ctx, -2, "st_gid");
-	duk_push_int(ctx, stat->st_rdev);
-	duk_put_prop_string(ctx, -2, "st_rdev");
-	duk_push_int(ctx, stat->st_size);
-	duk_put_prop_string(ctx, -2, "st_size");
-	duk_push_int(ctx, stat->st_blksize);
-	duk_put_prop_string(ctx, -2, "st_blklsize");
-	duk_push_int(ctx, stat->st_blocks);
-	duk_put_prop_string(ctx, -2, "st_blocks");
-	duk_push_int(ctx, stat->st_atime);
-	duk_put_prop_string(ctx, -2, "st_atime");
-	duk_push_int(ctx, stat->st_mtime);
-	duk_put_prop_string(ctx, -2, "st_mtime");
-	duk_push_int(ctx, stat->st_ctime);
-	duk_put_prop_string(ctx, -2, "st_ctime");
-	return 0;
-}
-
-static int sys1_lstat(duk_context *ctx)
-{
-	const char *path = duk_to_string(ctx, 0);
-	struct stat stat;
-	int rc;
-	
-	rc = lstat(path, &stat);
-	sys1_push_stat(ctx, &stat);
-	duk_push_int(ctx, rc);
-	duk_put_prop_string(ctx, -2, "rc");
-	return 1;
-}
-
 static int sys1_stat(duk_context *ctx)
 {
 	const char *path = duk_to_string(ctx, 0);
@@ -428,61 +586,6 @@ static int sys1_stat(duk_context *ctx)
 	sys1_push_stat(ctx, &buf);
 	duk_push_int(ctx, rc);
 	duk_put_prop_string(ctx, -2, "rc");
-	return 1;
-}
-
-static int sys1_fstat(duk_context *ctx)
-{
-	int fd = duk_to_int(ctx, 0);
-	struct stat stat;
-	int rc;
-	
-	rc = fstat(fd, &stat);
-	sys1_push_stat(ctx, &stat);
-	duk_push_int(ctx, rc);
-	duk_put_prop_string(ctx, -2, "rc");
-	return 1;
-}
-
-static int sys1_write(duk_context *ctx)
-{
-	int fd = duk_to_int(ctx, 0);
-	size_t bufsize;
-	void *buf = duk_to_buffer(ctx, 1, &bufsize);
-	int len = duk_to_int(ctx, 2);
-	ssize_t rc;
-	
-	rc = write(fd, buf, len);
-
-	duk_push_int(ctx, rc);
-	return 1;
-}
-
-static int sys1_dprint(duk_context *ctx)
-{
-	int fd = duk_to_int(ctx, 0);
-	const char *buf = duk_to_string(ctx, 1);
-	int len;
-	ssize_t rc;
-
-	len = strlen(buf);
-
-	rc = write(fd, buf, len);
-
-	duk_push_int(ctx, rc);
-	return 1;
-}
-
-static int sys1_lseek(duk_context *ctx)
-{
-	int fd = duk_to_int(ctx, 0);
-	off_t offset = duk_to_int(ctx, 1);
-	int whence = duk_to_int(ctx, 2);
-	off_t rc;
-
-	rc = lseek(fd, offset, whence);
-
-	duk_push_int(ctx, rc);
 	return 1;
 }
 
@@ -508,51 +611,10 @@ done:
 	return 1;
 }
 
-static int sys1_chdir(duk_context *ctx)
-{
-	const char *path = duk_to_string(ctx, 0);
-	int rc;
-
-	rc = chdir(path);
-
-	duk_push_int(ctx, rc);
-	return 1;
-}
-
-static int sys1_chmod(duk_context *ctx)
-{
-	const char *path = duk_to_string(ctx, 0);
-	mode_t mode = duk_to_int(ctx, 1);
-	int rc;
-
-	rc = chmod(path, mode);
-
-	duk_push_int(ctx, rc);
-	return 1;
-}
-
-static int sys1_fchmod(duk_context *ctx)
-{
-	int fd = duk_to_int(ctx, 0);
-	mode_t mode = duk_to_int(ctx, 1);
-	int rc;
-
-	rc = fchmod(fd, mode);
-
-	duk_push_int(ctx, rc);
-	return 1;
-}
-
 static int sys1_strerror(duk_context *ctx)
 {
 	int num = duk_to_int(ctx, 0);
 	duk_push_string(ctx, strerror(num));
-	return 1;
-}
-
-static int sys1_errno(duk_context *ctx)
-{
-	duk_push_int(ctx, errno);
 	return 1;
 }
 
@@ -576,81 +638,17 @@ static int sys1_unlink(duk_context *ctx)
 	return 1;
 }
 
-static int sys1_kill(duk_context *ctx)
-{
-	int pid = duk_to_int(ctx, 0);
-	int sig = duk_to_int(ctx, 1);
-	int rc;
-	
-	rc = kill(pid, sig);
-	duk_push_int(ctx, rc);
-	return 1;
-}
-
-static int sys1_getpid(duk_context *ctx)
-{
-	pid_t rc;
-
-	rc = getpid();
-	duk_push_int(ctx, rc);
-	return 1;
-}
-
-static int sys1_getppid(duk_context *ctx)
-{
-	pid_t rc;
-
-	rc = getppid();
-	duk_push_int(ctx, rc);
-	return 1;
-}
-
-static int sys1_exit(duk_context *ctx)
-{
-	int code = duk_to_int(ctx, 0);
-
-	exit(code);
-
-	return 1;
-}
-
-static int sys1__exit(duk_context *ctx)
-{
-	int code = duk_to_int(ctx, 0);
-
-	_exit(code);
-
-	return 1;
-}
-
-static int sys1_accept(duk_context *ctx)
+static int sys1_write(duk_context *ctx)
 {
 	int fd = duk_to_int(ctx, 0);
+	size_t bufsize;
+	void *buf = duk_to_buffer(ctx, 1, &bufsize);
+	int len = duk_to_int(ctx, 2);
 	ssize_t rc;
-	char buf[64];
-	union {
-		struct sockaddr dst;
-		struct sockaddr_in dst4;
-		struct sockaddr_in6 dst6;
-		struct sockaddr_un dstun;
-	} addr;
-	socklen_t addrlen = sizeof(addr);
 	
-	memset(&addr, 0, sizeof(addr));
+	rc = write(fd, buf, len);
 
-	rc = accept(fd, &addr.dst, &addrlen);
-
-	duk_push_object(ctx);
-	
 	duk_push_int(ctx, rc);
-	duk_put_prop_string(ctx, -2, "rc");
-	duk_push_int(ctx, addr.dst.sa_family);
-	duk_put_prop_string(ctx, -2, "family");
-	if((addr.dst.sa_family == AF_INET) && inet_ntop(addr.dst.sa_family, &addr.dst4.sin_addr, buf, sizeof(buf))) {
-		duk_push_string(ctx, buf);
-		duk_put_prop_string(ctx, -2, "addr");
-	}
-
 	return 1;
 }
 
