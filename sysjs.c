@@ -566,6 +566,16 @@ static int sys1_umask(duk_context *ctx)
 	return 1;
 }
 
+static int sys1_unlink(duk_context *ctx)
+{
+	const char *pathname = duk_to_string(ctx, 0);
+	int rc;
+
+	rc = unlink(pathname);
+	duk_push_int(ctx, rc);
+	return 1;
+}
+
 static int sys1_kill(duk_context *ctx)
 {
 	int pid = duk_to_int(ctx, 0);
@@ -688,7 +698,7 @@ const duk_function_list_entry sys1_funcs[] = {
 	{ "umask", sys1_umask , 1 },
 //	{ "umount", sys1_umount , 1 },
 //	{ "umount2", sys1_umount2 , 2 },
-//	{ "unlink", sys1_unlink , 1 },
+	{ "unlink", sys1_unlink , 1 },
 //	{ "unshare", sys1_unshare, 1 },
 	{ "waitpid", sys1_waitpid, 2 },
 	{ "write", sys1_write, 3 /* fd, buffer, count */ },
