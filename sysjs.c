@@ -32,7 +32,7 @@ struct {
 	off_t size;
 } prg;
 
-int sys1_open(duk_context *ctx)
+static int sys1_open(duk_context *ctx)
 {
 	int fd;
 	
@@ -46,7 +46,7 @@ int sys1_open(duk_context *ctx)
 	return 1;
 }
 
-int sys1_socket(duk_context *ctx)
+static int sys1_socket(duk_context *ctx)
 {
 	int fd;
 
@@ -60,7 +60,7 @@ int sys1_socket(duk_context *ctx)
 	return 1;	
 }
 
-int sys1_sleep(duk_context *ctx)
+static int sys1_sleep(duk_context *ctx)
 {
 	int rc;
 
@@ -72,7 +72,7 @@ int sys1_sleep(duk_context *ctx)
 	return 1;
 }
 
-int sys1_listen(duk_context *ctx)
+static int sys1_listen(duk_context *ctx)
 {
 	int rc;
 
@@ -85,7 +85,7 @@ int sys1_listen(duk_context *ctx)
 	return 1;	
 }
 
-int sys1_dup2(duk_context *ctx)
+static int sys1_dup2(duk_context *ctx)
 {
 	int rc;
 
@@ -99,7 +99,7 @@ int sys1_dup2(duk_context *ctx)
 }
 
 
-int sys1_poll(duk_context *ctx)
+static int sys1_poll(duk_context *ctx)
 {
 	int nfds = duk_to_int(ctx, 1);
 	int timeout = duk_to_int(ctx, 2);
@@ -137,7 +137,7 @@ int sys1_poll(duk_context *ctx)
 	return 1;
 }
 
-int sys1_bind(duk_context *ctx)
+static int sys1_bind(duk_context *ctx)
 {
 	int rc;
 	int port = 0;
@@ -213,7 +213,7 @@ out:
 	return 1;
 }
 
-int sys1_connect(duk_context *ctx)
+static int sys1_connect(duk_context *ctx)
 {
 	int rc;
 	int port = 0;
@@ -290,7 +290,7 @@ out:
 }
 
 
-int sys1_close(duk_context *ctx)
+static int sys1_close(duk_context *ctx)
 {
 	int fd = duk_to_int(ctx, 0);
 	
@@ -300,19 +300,19 @@ int sys1_close(duk_context *ctx)
 	return 1;
 }
 
-int sys1_setsid(duk_context *ctx)
+static int sys1_setsid(duk_context *ctx)
 {
 	duk_push_number(ctx, setsid());
 	return 1;
 }
 
-int sys1_fork(duk_context *ctx)
+static int sys1_fork(duk_context *ctx)
 {
 	duk_push_number(ctx, fork());
 	return 1;
 }
 
-int sys1_read(duk_context *ctx)
+static int sys1_read(duk_context *ctx)
 {
 	int fd = duk_to_int(ctx, 0);
 	int len = duk_to_int(ctx, 1);
@@ -331,7 +331,7 @@ int sys1_read(duk_context *ctx)
 	return 1;
 }
 
-int sys1_pipe(duk_context *ctx)
+static int sys1_pipe(duk_context *ctx)
 {
 	int rc;
 	int fd[2];
@@ -348,7 +348,7 @@ int sys1_pipe(duk_context *ctx)
 	return 1;
 }
 
-int sys1_waitpid(duk_context *ctx)
+static int sys1_waitpid(duk_context *ctx)
 {
 	int rc;
 	pid_t pid = duk_to_int(ctx, 0);
@@ -373,7 +373,7 @@ int sys1_waitpid(duk_context *ctx)
 	return 1;
 }
 
-int sys1_push_stat(duk_context *ctx, struct stat *stat)
+static int sys1_push_stat(duk_context *ctx, struct stat *stat)
 {
 	duk_push_object(ctx);
 	duk_push_int(ctx, stat->st_dev);
@@ -405,7 +405,7 @@ int sys1_push_stat(duk_context *ctx, struct stat *stat)
 	return 0;
 }
 
-int sys1_lstat(duk_context *ctx)
+static int sys1_lstat(duk_context *ctx)
 {
 	const char *path = duk_to_string(ctx, 0);
 	struct stat stat;
@@ -418,7 +418,7 @@ int sys1_lstat(duk_context *ctx)
 	return 1;
 }
 
-int sys1_stat(duk_context *ctx)
+static int sys1_stat(duk_context *ctx)
 {
 	const char *path = duk_to_string(ctx, 0);
 	struct stat buf;
@@ -431,7 +431,7 @@ int sys1_stat(duk_context *ctx)
 	return 1;
 }
 
-int sys1_fstat(duk_context *ctx)
+static int sys1_fstat(duk_context *ctx)
 {
 	int fd = duk_to_int(ctx, 0);
 	struct stat stat;
@@ -444,7 +444,7 @@ int sys1_fstat(duk_context *ctx)
 	return 1;
 }
 
-int sys1_write(duk_context *ctx)
+static int sys1_write(duk_context *ctx)
 {
 	int fd = duk_to_int(ctx, 0);
 	size_t bufsize;
@@ -458,7 +458,7 @@ int sys1_write(duk_context *ctx)
 	return 1;
 }
 
-int sys1_dprint(duk_context *ctx)
+static int sys1_dprint(duk_context *ctx)
 {
 	int fd = duk_to_int(ctx, 0);
 	const char *buf = duk_to_string(ctx, 1);
@@ -473,7 +473,7 @@ int sys1_dprint(duk_context *ctx)
 	return 1;
 }
 
-int sys1_lseek(duk_context *ctx)
+static int sys1_lseek(duk_context *ctx)
 {
 	int fd = duk_to_int(ctx, 0);
 	off_t offset = duk_to_int(ctx, 1);
@@ -486,7 +486,7 @@ int sys1_lseek(duk_context *ctx)
 	return 1;
 }
 
-int sys1_setsockopt(duk_context *ctx)
+static int sys1_setsockopt(duk_context *ctx)
 {
 	int fd = duk_to_int(ctx, 0);
 	int level = duk_to_int(ctx, 1);
@@ -508,7 +508,7 @@ done:
 	return 1;
 }
 
-int sys1_chdir(duk_context *ctx)
+static int sys1_chdir(duk_context *ctx)
 {
 	const char *path = duk_to_string(ctx, 0);
 	int rc;
@@ -519,7 +519,7 @@ int sys1_chdir(duk_context *ctx)
 	return 1;
 }
 
-int sys1_chmod(duk_context *ctx)
+static int sys1_chmod(duk_context *ctx)
 {
 	const char *path = duk_to_string(ctx, 0);
 	mode_t mode = duk_to_int(ctx, 1);
@@ -531,7 +531,7 @@ int sys1_chmod(duk_context *ctx)
 	return 1;
 }
 
-int sys1_fchmod(duk_context *ctx)
+static int sys1_fchmod(duk_context *ctx)
 {
 	int fd = duk_to_int(ctx, 0);
 	mode_t mode = duk_to_int(ctx, 1);
@@ -543,20 +543,20 @@ int sys1_fchmod(duk_context *ctx)
 	return 1;
 }
 
-int sys1_strerror(duk_context *ctx)
+static int sys1_strerror(duk_context *ctx)
 {
 	int num = duk_to_int(ctx, 0);
 	duk_push_string(ctx, strerror(num));
 	return 1;
 }
 
-int sys1_errno(duk_context *ctx)
+static int sys1_errno(duk_context *ctx)
 {
 	duk_push_int(ctx, errno);
 	return 1;
 }
 
-int sys1_umask(duk_context *ctx)
+static int sys1_umask(duk_context *ctx)
 {
 	mode_t mask = duk_to_int(ctx, 0);
 	mode_t rc;
@@ -566,7 +566,7 @@ int sys1_umask(duk_context *ctx)
 	return 1;
 }
 
-int sys1_kill(duk_context *ctx)
+static int sys1_kill(duk_context *ctx)
 {
 	int pid = duk_to_int(ctx, 0);
 	int sig = duk_to_int(ctx, 1);
@@ -577,7 +577,7 @@ int sys1_kill(duk_context *ctx)
 	return 1;
 }
 
-int sys1_getpid(duk_context *ctx)
+static int sys1_getpid(duk_context *ctx)
 {
 	pid_t rc;
 
@@ -586,7 +586,7 @@ int sys1_getpid(duk_context *ctx)
 	return 1;
 }
 
-int sys1_getppid(duk_context *ctx)
+static int sys1_getppid(duk_context *ctx)
 {
 	pid_t rc;
 
@@ -595,7 +595,7 @@ int sys1_getppid(duk_context *ctx)
 	return 1;
 }
 
-int sys1_exit(duk_context *ctx)
+static int sys1_exit(duk_context *ctx)
 {
 	int code = duk_to_int(ctx, 0);
 
@@ -604,7 +604,7 @@ int sys1_exit(duk_context *ctx)
 	return 1;
 }
 
-int sys1__exit(duk_context *ctx)
+static int sys1__exit(duk_context *ctx)
 {
 	int code = duk_to_int(ctx, 0);
 
@@ -613,7 +613,7 @@ int sys1__exit(duk_context *ctx)
 	return 1;
 }
 
-int sys1_accept(duk_context *ctx)
+static int sys1_accept(duk_context *ctx)
 {
 	int fd = duk_to_int(ctx, 0);
 	ssize_t rc;
