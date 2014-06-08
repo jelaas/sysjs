@@ -519,73 +519,9 @@ static int sys1_read(duk_context *ctx)
 	return 1;
 }
 
-static int sys1_socket(duk_context *ctx)
-{
-	int fd;
-
-	int domain = duk_to_int(ctx, 0);
-	int type = duk_to_int(ctx, 1);
-	int protocol = duk_to_int(ctx, 2);
-
-	fd = socket(domain, type, protocol);
-	
-	duk_push_number(ctx, fd);
-	return 1;	
-}
-
-static int sys1_sleep(duk_context *ctx)
-{
-	int rc;
-
-	int seconds = duk_to_int(ctx, 0);
-
-	rc = sleep(seconds);
-	
-	duk_push_number(ctx, rc);
-	return 1;
-}
-
 static int sys1_setsid(duk_context *ctx)
 {
 	duk_push_number(ctx, setsid());
-	return 1;
-}
-
-static int sys1_waitpid(duk_context *ctx)
-{
-	int rc;
-	pid_t pid = duk_to_int(ctx, 0);
-	int status = 0;
-	int options = duk_to_int(ctx, 1);
-
-	rc = waitpid(pid, &status, options);
-
-	duk_push_object(ctx);
-	duk_push_int(ctx, rc);
-	duk_put_prop_string(ctx, -2, "rc");
-	duk_push_int(ctx, status);
-	duk_put_prop_string(ctx, -2, "status");
-	duk_push_int(ctx, WIFEXITED(status));
-	duk_put_prop_string(ctx, -2, "exited");
-	duk_push_int(ctx, WEXITSTATUS(status));
-	duk_put_prop_string(ctx, -2, "exitstatus");
-	duk_push_int(ctx, WIFSIGNALED(status));
-	duk_put_prop_string(ctx, -2, "signaled");
-	duk_push_int(ctx, WTERMSIG(status));
-	duk_put_prop_string(ctx, -2, "signal");
-	return 1;
-}
-
-static int sys1_stat(duk_context *ctx)
-{
-	const char *path = duk_to_string(ctx, 0);
-	struct stat buf;
-	int rc;
-	
-	rc = stat(path, &buf);
-	sys1_push_stat(ctx, &buf);
-	duk_push_int(ctx, rc);
-	duk_put_prop_string(ctx, -2, "rc");
 	return 1;
 }
 
@@ -608,6 +544,45 @@ static int sys1_setsockopt(duk_context *ctx)
 	rc = setsockopt(fd, level, optname, (void*)&optval, sizeof(optval));
 done:
 	duk_push_int(ctx, rc);
+	return 1;
+}
+
+static int sys1_sleep(duk_context *ctx)
+{
+	int rc;
+
+	int seconds = duk_to_int(ctx, 0);
+
+	rc = sleep(seconds);
+	
+	duk_push_number(ctx, rc);
+	return 1;
+}
+
+static int sys1_socket(duk_context *ctx)
+{
+	int fd;
+
+	int domain = duk_to_int(ctx, 0);
+	int type = duk_to_int(ctx, 1);
+	int protocol = duk_to_int(ctx, 2);
+
+	fd = socket(domain, type, protocol);
+	
+	duk_push_number(ctx, fd);
+	return 1;	
+}
+
+static int sys1_stat(duk_context *ctx)
+{
+	const char *path = duk_to_string(ctx, 0);
+	struct stat buf;
+	int rc;
+	
+	rc = stat(path, &buf);
+	sys1_push_stat(ctx, &buf);
+	duk_push_int(ctx, rc);
+	duk_put_prop_string(ctx, -2, "rc");
 	return 1;
 }
 
@@ -635,6 +610,31 @@ static int sys1_unlink(duk_context *ctx)
 
 	rc = unlink(pathname);
 	duk_push_int(ctx, rc);
+	return 1;
+}
+
+static int sys1_waitpid(duk_context *ctx)
+{
+	int rc;
+	pid_t pid = duk_to_int(ctx, 0);
+	int status = 0;
+	int options = duk_to_int(ctx, 1);
+
+	rc = waitpid(pid, &status, options);
+
+	duk_push_object(ctx);
+	duk_push_int(ctx, rc);
+	duk_put_prop_string(ctx, -2, "rc");
+	duk_push_int(ctx, status);
+	duk_put_prop_string(ctx, -2, "status");
+	duk_push_int(ctx, WIFEXITED(status));
+	duk_put_prop_string(ctx, -2, "exited");
+	duk_push_int(ctx, WEXITSTATUS(status));
+	duk_put_prop_string(ctx, -2, "exitstatus");
+	duk_push_int(ctx, WIFSIGNALED(status));
+	duk_put_prop_string(ctx, -2, "signaled");
+	duk_push_int(ctx, WTERMSIG(status));
+	duk_put_prop_string(ctx, -2, "signal");
 	return 1;
 }
 
