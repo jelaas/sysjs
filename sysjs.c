@@ -22,6 +22,7 @@
 #include <sys/wait.h>
 #include <poll.h>
 #include <signal.h>
+#include <sched.h>
 
 #include <stdio.h>
 #include "duktape.h"
@@ -519,6 +520,18 @@ static int sys1_read(duk_context *ctx)
 	return 1;
 }
 
+static int sys1_rename(duk_context *ctx)
+{
+	const char *oldpath = duk_to_string(ctx, 0);
+	const char *newpath = duk_to_string(ctx, 1);
+	int rc;
+
+	rc = rename(oldpath, newpath);
+
+	duk_push_int(ctx, rc);
+	return 1;
+}
+
 static int sys1_setsid(duk_context *ctx)
 {
 	duk_push_number(ctx, setsid());
@@ -613,6 +626,16 @@ static int sys1_unlink(duk_context *ctx)
 	return 1;
 }
 
+static int sys1_unshare(duk_context *ctx)
+{
+	int flags = duk_to_int(ctx, 0);
+	int rc;
+
+	rc = unshare(flags);
+	duk_push_int(ctx, rc);
+	return 1;
+}
+
 static int sys1_waitpid(duk_context *ctx)
 {
 	int rc;
@@ -684,7 +707,7 @@ const duk_function_list_entry sys1_funcs[] = {
 	{ "pipe", sys1_pipe, 0 },
 	{ "poll", sys1_poll, 3 },
 	{ "read", sys1_read, 2 /* fd, count */ },
-//      { "rename", sys1_rename, 2 },
+	{ "rename", sys1_rename, 2 },
         { "setsid", sys1_setsid, 0 },
 	{ "setsockopt", sys1_setsockopt, 4 },
 	{ "sleep", sys1_sleep, 1 },
@@ -697,13 +720,20 @@ const duk_function_list_entry sys1_funcs[] = {
 //	{ "umount", sys1_umount , 1 },
 //	{ "umount2", sys1_umount2 , 2 },
 	{ "unlink", sys1_unlink , 1 },
-//	{ "unshare", sys1_unshare, 1 },
+	{ "unshare", sys1_unshare, 1 },
 	{ "waitpid", sys1_waitpid, 2 },
 	{ "write", sys1_write, 3 /* fd, buffer, count */ },
 	{ NULL, NULL, 0 }
 	};
 
 const duk_number_list_entry sys1_consts[] = {
+	{ "CLONE_FILES", (double) CLONE_FILES },
+	{ "CLONE_FS", (double) CLONE_FS },
+	{ "CLONE_NEWIPC", (double) CLONE_NEWIPC },
+	{ "CLONE_NEWNET", (double) CLONE_NEWNET },
+	{ "CLONE_NEWNS", (double) CLONE_NEWNS },
+	{ "CLONE_NEWUTS", (double) CLONE_NEWUTS },
+	{ "CLONE_SYSVSEM", (double) CLONE_SYSVSEM },
 	{ "O_RDONLY", (double) O_RDONLY },
 	{ "O_WRONLY,", (double) O_WRONLY, },
 	{ "O_RDWR", (double) O_RDWR },
