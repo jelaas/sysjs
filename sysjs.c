@@ -23,6 +23,7 @@
 #include <poll.h>
 #include <signal.h>
 #include <sched.h>
+#include <syscall.h>
 
 #include <stdio.h>
 #include "duktape.h"
@@ -192,6 +193,16 @@ static int sys1_chmod(duk_context *ctx)
 	rc = chmod(path, mode);
 
 	duk_push_int(ctx, rc);
+	return 1;
+}
+
+static int sys1_clone(duk_context *ctx)
+{
+	int flags = duk_to_int(ctx, 0);
+	pid_t pid;
+
+	pid = syscall(SYS_clone, flags|SIGCHLD, 0);
+	duk_push_int(ctx, pid);
 	return 1;
 }
 
@@ -680,6 +691,7 @@ const duk_function_list_entry sys1_funcs[] = {
 	{ "bind", sys1_bind, 2 /* fd, obj { in, in6, un, una, port } */ },
 	{ "chdir", sys1_chdir, 1 },
 	{ "chmod", sys1_chmod, 2 },
+	{ "clone", sys1_clone, 1 },
 	{ "close", sys1_close, 1 /* fd */ },
 	{ "connect", sys1_connect, 2 /* fd, obj { in, in6, un, una, port } */ },
 	{ "dprint", sys1_dprint, 2 /* fd, string */ },
@@ -734,6 +746,7 @@ const duk_number_list_entry sys1_consts[] = {
 	{ "CLONE_NEWNS", (double) CLONE_NEWNS },
 	{ "CLONE_NEWUTS", (double) CLONE_NEWUTS },
 	{ "CLONE_SYSVSEM", (double) CLONE_SYSVSEM },
+	{ "CLONE_NEWPID", (double) CLONE_NEWPID },
 	{ "O_RDONLY", (double) O_RDONLY },
 	{ "O_WRONLY,", (double) O_WRONLY, },
 	{ "O_RDWR", (double) O_RDWR },
