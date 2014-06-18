@@ -494,18 +494,15 @@ static int sys1_poll(duk_context *ctx)
 	}
 
 	rc = poll(fds, nfds, timeout);
-
 	duk_push_object(ctx);
 	duk_push_int(ctx, rc);
 	duk_put_prop_string(ctx, -2, "rc");
-	duk_push_array(ctx);
+	duk_dup(ctx, 0); // dup reference to arg0 array
 	for(i=0;i<nfds;i++) {
-		duk_push_object(ctx);
-		duk_push_int(ctx, fds[i].fd);
-		duk_put_prop_string(ctx, -2, "fd");
+		duk_get_prop_index(ctx, -1, i); // fetch object from array at i
 		duk_push_int(ctx, fds[i].revents);
-		duk_put_prop_string(ctx, -2, "revents");
-		duk_put_prop_index(ctx, -2, i);
+		duk_put_prop_string(ctx, -2, "revents"); // put revents into object
+		duk_pop(ctx); // remove object from stack
 	}
 	duk_put_prop_string(ctx, -2, "fds");
 
