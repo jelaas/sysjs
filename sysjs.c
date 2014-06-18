@@ -937,7 +937,9 @@ int main(int argc, char *argv[]) {
 		
 		// read file argv[1]
 		prg.fd = open(argv[1], O_RDONLY);
-
+		if(prg.fd == -1) {
+			exit(1);
+		}
 		prg.size = lseek(prg.fd, 0, SEEK_END);
 		prg.buf = mmap((void*)0, prg.size, PROT_READ, MAP_PRIVATE, prg.fd, 0);
 	
