@@ -8,7 +8,7 @@ Sys.listen(fd, 10);
 while(1) {
     res = Sys.accept(fd);
     if(res.rc >= 0) {
-	Sys.dprint(res.rc, res.famliy + " " + res.addr);
+	Sys.dprint(res.rc, res.family + " " + res.addr);
 	Sys.close(res.rc);
     }
 }
