@@ -32,6 +32,9 @@ struct {
 	int fd;
 	char *buf;
 	off_t size;
+	int status;
+	int argc;
+	char **argv;
 } prg;
 
 static int sys1_push_stat(duk_context *ctx, struct stat *stat)
@@ -864,19 +867,36 @@ const duk_number_list_entry sys1_consts[] = {
 };
 
 int wrapped_compile_execute(duk_context *ctx) {
-	int nargs = 1;
+	int ret;
+
 	duk_compile(ctx, 0);
 	close(prg.fd);
 	munmap(prg.buf, prg.size);
 	
 	duk_push_global_object(ctx);  /* 'this' binding */
+	duk_call_method(ctx, 0);
+	prg.status = duk_to_int(ctx, -1);
+	duk_pop(ctx); // pop return value
 	
-	// push any arguments on stack (nargs of them)
-	duk_push_int(ctx, 1234);
+	// Check if global property 'main' exists
+	duk_push_global_object(ctx);
+	ret = duk_get_prop_string(ctx, -1, "main");
+	duk_remove(ctx, -2); // remove global object
 
-	duk_call_method(ctx, nargs);
+	// If main exists we call it
+	if(ret && duk_get_type(ctx, -1) != DUK_TYPE_UNDEFINED) {
+		int i;
+		
+		duk_push_global_object(ctx);  /* 'this' binding */
+		for(i=1;i<prg.argc;i++) {
+			duk_push_string(ctx, prg.argv[i]);
+		}
+		duk_call_method(ctx, i-1);
+		prg.status = duk_to_int(ctx, -1);
+	}
 	duk_pop(ctx);
-	return 0;
+
+	return 0; // no values returned (0)
 }
 
 static int get_stack_raw(duk_context *ctx) {
@@ -910,12 +930,12 @@ static void print_error(duk_context *ctx, FILE *f) {
 
 int main(int argc, char *argv[]) {
 	int i;
+	
+	prg.argc = argc;
+	prg.argv = argv;
+
 	duk_context *ctx = duk_create_heap_default();
 
-	/* Initialize an object with a set of function properties, and set it to
-	 * global object 'MyModule'.
-	 */
-	
 	duk_push_global_object(ctx);
 	duk_push_object(ctx);  /* -> [ ... global obj ] */
 	duk_put_function_list(ctx, -1, sys1_funcs);
@@ -958,11 +978,11 @@ int main(int argc, char *argv[]) {
 		rc = duk_safe_call(ctx, wrapped_compile_execute, 2 /*nargs*/, 1 /*nret*/);
 		if (rc != DUK_EXEC_SUCCESS) {
 			print_error(ctx, stderr);
-			exit(1);
+			exit(2);
 		}
 		duk_pop(ctx);  /* pop eval result */
 		
 		duk_destroy_heap(ctx);
 	}
-	return 0;
+	return prg.status;
 }
