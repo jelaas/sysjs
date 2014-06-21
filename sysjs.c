@@ -329,6 +329,56 @@ static int sys1_errno(duk_context *ctx)
 	return 1;
 }
 
+static int sys1_execve(duk_context *ctx)
+{
+	const char *filename = duk_to_string(ctx, 0);
+	int rc;
+	char **argv;
+	char **envp;
+	int argc = 0, envc = 0, i;
+	
+	// count arguments
+	// FIXME: Use duk_get_length() instead ?
+	while(1) {
+		rc = duk_get_prop_index(ctx, 1, argc);
+		duk_pop(ctx);
+		if(rc == 0) break;
+		argc++;
+	}
+
+	argv = malloc(sizeof(char*)*(argc+1));
+	
+	for(i=0;i<argc;i++) {
+		duk_get_prop_index(ctx, 1, i);
+		argv[i] = (char*) duk_to_string(ctx, 3);
+		duk_pop(ctx);
+	}
+	argv[i] = (void*)0;
+
+	// count arguments
+	// FIXME: Use duk_get_length() instead ?
+	while(1) {
+		rc = duk_get_prop_index(ctx, 2, envc);
+		duk_pop(ctx);
+		if(rc == 0) break;
+		envc++;
+	}
+
+	envp = malloc(sizeof(char*)*(envc+1));
+	
+	for(i=0;i<envc;i++) {
+		duk_get_prop_index(ctx, 2, i);
+		envp[i] = (char*) duk_to_string(ctx, 3);
+		duk_pop(ctx);
+	}
+	envp[i] = (void*)0;
+	
+	rc = execve(filename, argv, envp);
+	
+	duk_push_int(ctx, rc);
+	return 1;
+}
+
 static int sys1_exit(duk_context *ctx)
 {
 	int code = duk_to_int(ctx, 0);
@@ -698,7 +748,7 @@ const duk_function_list_entry sys1_funcs[] = {
 //      { "dprintf", sys1_dprintf, DUK_VARARGS },
 	{ "dup2", sys1_dup2, 2 },
 	{ "errno", sys1_errno, 0 },
-//	{ "execve", sys1_execve, 3 },
+	{ "execve", sys1_execve, 3 },
 	{ "exit", sys1_exit, 1 },
 	{ "_exit", sys1__exit, 1 },
 	{ "fchmod", sys1_fchmod, 2 },
