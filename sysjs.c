@@ -409,6 +409,26 @@ static int sys1_fchmod(duk_context *ctx)
 	return 1;
 }
 
+static int sys1_fcntl(duk_context *ctx)
+{
+	int rc;
+	int fd = duk_to_int(ctx, 0);
+	int cmd = duk_to_int(ctx, 1);
+	int arg = 0;
+	
+	if(cmd == F_DUPFD ||
+	   cmd == F_DUPFD_CLOEXEC ||
+	   cmd == F_SETFD ||
+	   cmd == F_SETFL) {
+		arg = duk_to_int(ctx, 2);
+	}
+
+	rc = fcntl(fd, cmd, arg);
+	
+	duk_push_int(ctx, rc);
+	return 1;
+}
+
 static int sys1_fork(duk_context *ctx)
 {
 	duk_push_number(ctx, fork());
@@ -752,7 +772,7 @@ const duk_function_list_entry sys1_funcs[] = {
 	{ "exit", sys1_exit, 1 },
 	{ "_exit", sys1__exit, 1 },
 	{ "fchmod", sys1_fchmod, 2 },
-//	{ "fcntl", sys1_fcntl, 3 },
+	{ "fcntl", sys1_fcntl, 3 },
 	{ "fork", sys1_fork, 1 },
 	{ "fstat", sys1_fstat, 1 },
 	{ "getpid", sys1_getpid, 0 },
@@ -813,6 +833,14 @@ const duk_number_list_entry sys1_consts[] = {
 	{ "O_NONBLOCK", (double) O_NONBLOCK },
 	{ "O_SYNC", (double) O_SYNC },
 	{ "O_TRUNC", (double) O_TRUNC },
+
+	{ "F_DUPFD", (double) F_DUPFD },
+	{ "F_DUPFD_CLOEXEC", (double) F_DUPFD_CLOEXEC },
+	{ "F_GETFD", (double) F_GETFD },
+	{ "F_SETFD", (double) F_SETFD },
+	{ "F_GETFL", (double) F_GETFL },
+	{ "F_SETFL", (double) F_SETFL },
+	{ "FD_CLOEXEC", (double) FD_CLOEXEC },
 
 	{ "SOCK_STREAM", (double) SOCK_STREAM },
 	{ "SOCK_DGRAM", (double) SOCK_DGRAM },
@@ -941,7 +969,7 @@ int wrapped_compile_execute(duk_context *ctx) {
 		for(i=1;i<prg.argc;i++) {
 			duk_push_string(ctx, prg.argv[i]);
 		}
-		duk_call_method(ctx, i-1);
+		duk_call_method(ctx, prg.argc-1);
 		prg.status = duk_to_int(ctx, -1);
 	}
 	duk_pop(ctx);
