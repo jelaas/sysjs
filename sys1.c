@@ -471,6 +471,22 @@ static int sys1_getppid(duk_context *ctx)
 	return 1;
 }
 
+static int sys1_gettimeofday(duk_context *ctx)
+{
+	pid_t rc;
+	struct timeval tv;
+
+	rc = gettimeofday(&tv, (void*)0);
+
+	duk_push_uint(ctx, tv.tv_sec);
+	duk_put_prop_string(ctx, 0, "tv_sec");
+	duk_push_uint(ctx, tv.tv_usec);
+	duk_put_prop_string(ctx, 0, "tv_usec");
+	
+	duk_push_int(ctx, rc);
+	return 1;
+}
+
 static int sys1_kill(duk_context *ctx)
 {
 	int pid = duk_to_int(ctx, 0);
@@ -704,6 +720,15 @@ static int sys1_strerror(duk_context *ctx)
 	return 1;
 }
 
+static int sys1_time(duk_context *ctx)
+{
+	time_t t;
+
+	t = time(0);
+	duk_push_uint(ctx, t);
+	return 1;
+}
+
 static int sys1_umask(duk_context *ctx)
 {
 	mode_t mask = duk_to_int(ctx, 0);
@@ -795,6 +820,7 @@ static const duk_function_list_entry sys1_funcs[] = {
 	{ "getenv", sys1_getenv, 1 },
 	{ "getpid", sys1_getpid, 0 },
 	{ "getppid", sys1_getppid, 0 },
+	{ "gettimeofday", sys1_gettimeofday, 1 },
 //	{ "gmtime", sys1_gmtime, 1 },
 	{ "kill", sys1_kill, 2 },
 	{ "listen", sys1_listen, 2 /* fd, backlog */ },
@@ -817,6 +843,7 @@ static const duk_function_list_entry sys1_funcs[] = {
 	{ "strerror", sys1_strerror, 1 },
 //	{ "tcgetattr", sys1_umount , 3 },
 //	{ "tcsetattr", sys1_umount , 3 },
+	{ "time", sys1_time, 0 },
 	{ "umask", sys1_umask , 1 },
 //	{ "umount", sys1_umount , 1 },
 //	{ "umount2", sys1_umount2 , 2 },
