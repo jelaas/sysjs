@@ -487,6 +487,40 @@ static int sys1_gettimeofday(duk_context *ctx)
 	return 1;
 }
 
+static int sys1_gmtime(duk_context *ctx)
+{
+	struct tm tm, *tmp;
+	time_t timep = duk_to_uint(ctx, 0);
+
+	tmp = gmtime_r(&timep, &tm);
+	if(!tmp) {
+		duk_push_undefined(ctx);
+		return 1;
+	}
+
+	duk_push_object(ctx);
+	duk_push_uint(ctx, tm.tm_sec);
+	duk_put_prop_string(ctx, 1, "tm_sec");
+	duk_push_uint(ctx, tm.tm_min);
+	duk_put_prop_string(ctx, 1, "tm_min");
+	duk_push_uint(ctx, tm.tm_hour);
+	duk_put_prop_string(ctx, 1, "tm_hour");
+	duk_push_uint(ctx, tm.tm_mday);
+	duk_put_prop_string(ctx, 1, "tm_mday");
+	duk_push_uint(ctx, tm.tm_mon);
+	duk_put_prop_string(ctx, 1, "tm_mon");
+	duk_push_uint(ctx, tm.tm_year);
+	duk_put_prop_string(ctx, 1, "tm_year");
+	duk_push_uint(ctx, tm.tm_wday);
+	duk_put_prop_string(ctx, 1, "tm_wday");
+	duk_push_uint(ctx, tm.tm_yday);
+	duk_put_prop_string(ctx, 1, "tm_yday");
+	duk_push_uint(ctx, tm.tm_isdst);
+	duk_put_prop_string(ctx, 1, "tm_isdst");
+	
+	return 1;
+}
+
 static int sys1_kill(duk_context *ctx)
 {
 	int pid = duk_to_int(ctx, 0);
@@ -509,6 +543,40 @@ static int sys1_listen(duk_context *ctx)
 	
 	duk_push_number(ctx, rc);
 	return 1;	
+}
+
+static int sys1_localtime(duk_context *ctx)
+{
+	struct tm tm, *tmp;
+	time_t timep = duk_to_uint(ctx, 0);
+
+	tmp = localtime_r(&timep, &tm);
+	if(!tmp) {
+		duk_push_undefined(ctx);
+		return 1;
+	}
+
+	duk_push_object(ctx);
+	duk_push_uint(ctx, tm.tm_sec);
+	duk_put_prop_string(ctx, 1, "tm_sec");
+	duk_push_uint(ctx, tm.tm_min);
+	duk_put_prop_string(ctx, 1, "tm_min");
+	duk_push_uint(ctx, tm.tm_hour);
+	duk_put_prop_string(ctx, 1, "tm_hour");
+	duk_push_uint(ctx, tm.tm_mday);
+	duk_put_prop_string(ctx, 1, "tm_mday");
+	duk_push_uint(ctx, tm.tm_mon);
+	duk_put_prop_string(ctx, 1, "tm_mon");
+	duk_push_uint(ctx, tm.tm_year);
+	duk_put_prop_string(ctx, 1, "tm_year");
+	duk_push_uint(ctx, tm.tm_wday);
+	duk_put_prop_string(ctx, 1, "tm_wday");
+	duk_push_uint(ctx, tm.tm_yday);
+	duk_put_prop_string(ctx, 1, "tm_yday");
+	duk_push_uint(ctx, tm.tm_isdst);
+	duk_put_prop_string(ctx, 1, "tm_isdst");
+	
+	return 1;
 }
 
 static int sys1_lseek(duk_context *ctx)
@@ -821,10 +889,10 @@ static const duk_function_list_entry sys1_funcs[] = {
 	{ "getpid", sys1_getpid, 0 },
 	{ "getppid", sys1_getppid, 0 },
 	{ "gettimeofday", sys1_gettimeofday, 1 },
-//	{ "gmtime", sys1_gmtime, 1 },
+	{ "gmtime", sys1_gmtime, 1 },
 	{ "kill", sys1_kill, 2 },
 	{ "listen", sys1_listen, 2 /* fd, backlog */ },
-//	{ "localtime", sys1_localtime, 1 },
+	{ "localtime", sys1_localtime, 1 },
 	{ "lseek", sys1_lseek, 3 },
 	{ "lstat", sys1_lstat, 1 },
 	{ "mkdir", sys1_mkdir, 2 },
