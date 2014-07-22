@@ -440,6 +440,19 @@ static int sys1_fstat(duk_context *ctx)
 	return 1;
 }
 
+static int sys1_getenv(duk_context *ctx)
+{
+	const char *name = duk_to_string(ctx, 0);
+	char *val;
+
+	val = getenv(name);
+	if(val)
+		duk_push_string(ctx, val);
+	else 
+		duk_push_undefined(ctx);
+	return 1;
+}
+
 static int sys1_getpid(duk_context *ctx)
 {
 	pid_t rc;
@@ -505,6 +518,18 @@ static int sys1_lstat(duk_context *ctx)
 	sys1_push_stat(ctx, &stat);
 	duk_push_int(ctx, rc);
 	duk_put_prop_string(ctx, -2, "rc");
+	return 1;
+}
+
+static int sys1_mkdir(duk_context *ctx)
+{
+	const char *path = duk_to_string(ctx, 0);
+	mode_t mode = duk_to_int(ctx, 1);
+	int rc;
+
+	rc = mkdir(path, mode);
+
+	duk_push_int(ctx, rc);
 	return 1;
 }
 
@@ -767,6 +792,7 @@ static const duk_function_list_entry sys1_funcs[] = {
 	{ "fcntl", sys1_fcntl, 3 },
 	{ "fork", sys1_fork, 1 },
 	{ "fstat", sys1_fstat, 1 },
+	{ "getenv", sys1_getenv, 1 },
 	{ "getpid", sys1_getpid, 0 },
 	{ "getppid", sys1_getppid, 0 },
 //	{ "gmtime", sys1_gmtime, 1 },
@@ -775,6 +801,7 @@ static const duk_function_list_entry sys1_funcs[] = {
 //	{ "localtime", sys1_localtime, 1 },
 	{ "lseek", sys1_lseek, 3 },
 	{ "lstat", sys1_lstat, 1 },
+	{ "mkdir", sys1_mkdkir, 2 },
 //	{ "mmap", sys1_mmap, 6 },
 //	{ "mount", sys1_mount, 5 },
 	{ "open", sys1_open, 3 /* filename, flags, mode */ },
