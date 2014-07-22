@@ -801,7 +801,7 @@ static const duk_function_list_entry sys1_funcs[] = {
 //	{ "localtime", sys1_localtime, 1 },
 	{ "lseek", sys1_lseek, 3 },
 	{ "lstat", sys1_lstat, 1 },
-	{ "mkdir", sys1_mkdkir, 2 },
+	{ "mkdir", sys1_mkdir, 2 },
 //	{ "mmap", sys1_mmap, 6 },
 //	{ "mount", sys1_mount, 5 },
 	{ "open", sys1_open, 3 /* filename, flags, mode */ },
