@@ -2,7 +2,7 @@
  * File: sysjs.c
  * Implements: javascript vm (duktape) with system extensions (syscalls mainly)
  *
- * Copyright: Jens Låås, 2014
+ * Copyright: Jens Låås, 2014 - 2015
  * Copyright license: According to GPL, see file COPYING in this directory.
  *
  */
@@ -17,6 +17,13 @@
 #include "duktape.h"
 #include "sys1.h"
 
+struct mod {
+	char *buf;
+	off_t size;
+	char *name;
+	struct mod *next;
+};
+
 struct {
 	int fd;
 	char *buf;
@@ -24,7 +31,17 @@ struct {
 	int status;
 	int argc;
 	char **argv;
+	struct mod *main;
+	struct mod *modules;
 } prg;
+
+struct mod *mod_new()
+{
+	struct mod *m;
+	m = malloc(sizeof(struct mod));
+	if(m) memset(m, 0, sizeof(struct mod));
+	return m;
+}
 
 int wrapped_compile_execute(duk_context *ctx) {
 	int ret;
@@ -88,6 +105,22 @@ static void print_error(duk_context *ctx, FILE *f) {
 	duk_pop(ctx);
 }
 
+static int modSearch(duk_context *ctx)
+{
+	struct mod *mod;
+	const char *id = duk_to_string(ctx, 0);
+	printf("modsearch %s\n", id);
+	for(mod=prg.modules;mod;mod=mod->next) {
+		if(!strcmp(mod->name, id)) {
+			duk_push_lstring(ctx, mod->buf, mod->size);
+			return 1;
+		}
+	}
+	duk_error(ctx, DUK_ERR_ERROR, "failed to find module '%s'", id);
+	return DUK_RET_ERROR;
+}
+
+
 int main(int argc, char *argv[]) {
 	int i;
 	
@@ -99,8 +132,6 @@ int main(int argc, char *argv[]) {
 	duk_push_global_object(ctx);
 	duk_push_object(ctx);  /* -> [ ... global obj ] */
 	sys1(ctx);
-//	duk_put_function_list(ctx, -1, sys1_funcs);
-//	duk_put_number_list(ctx, -1, sys1_consts);
 
 	for(i=1;i<argc;i++) {
 		duk_push_string(ctx, argv[i]);
@@ -111,10 +142,18 @@ int main(int argc, char *argv[]) {
 
 	duk_put_prop_string(ctx, -2, "Sys1");  /* -> [ ... global ] */
 
+	duk_get_prop_string(ctx, -1, "Duktape");
+	duk_push_c_function(ctx, modSearch, 1);
+	duk_put_prop_string(ctx, -2, "modSearch");
+	duk_pop(ctx); // pop Duktape
+	
 	duk_pop(ctx);
 
 	{
 		int rc;
+		char *p, *endp, *start, *m;
+		off_t offset, pa_offset;
+		struct mod *mod;
 		
 		// read file argv[1]
 		prg.fd = open(argv[1], O_RDONLY);
@@ -123,16 +162,70 @@ int main(int argc, char *argv[]) {
 		}
 		prg.size = lseek(prg.fd, 0, SEEK_END);
 		prg.buf = mmap((void*)0, prg.size, PROT_READ, MAP_PRIVATE, prg.fd, 0);
-	
-		if(*(prg.buf) == '#') {
-			while(*(prg.buf) != '\n') {
-				prg.buf++;
-				prg.size--;
+
+		/* parse file header
+		 */
+		p = prg.buf;
+		endp = prg.buf + prg.size;
+		if(*p == '#') {
+			while((p < endp) && (*p != '\n')) p++;
+			if(p >= endp) {
+				fprintf(stderr, "EOF\n");
+				exit(1);
+			}
+			p++;
+		}
+		mod = mod_new();
+		for(start=p;p < endp;p++) {
+			if(*p == '\n') {
+				/* is this a module specification? */
+				for(m = start; *m == ' '; m++);
+				if((*m >= '0') && (*m <= '9')) {
+					mod->size = strtoul(m, &m, 10);
+					if(!m) break;
+					if(*m != ' ') break;
+					m++;
+					mod->name = strndup(m, p-m);
+					if(!strcmp(mod->name, "total"))
+						break;
+					mod->next = prg.modules;
+					prg.modules = mod;
+					mod = mod_new();
+				} else
+					break;
+				start = p+1;
 			}
 		}
-		
+		offset = prg.size;
+		for(mod = prg.modules; mod; mod=mod->next) {
+			offset -= mod->size;
+			pa_offset = offset & ~(sysconf(_SC_PAGE_SIZE) - 1);
+			mod->buf = mmap((void*)0, mod->size + offset - pa_offset,
+					PROT_READ, MAP_PRIVATE, prg.fd, pa_offset);
+			if(mod->buf == MAP_FAILED) {
+				fprintf(stderr, "mmap failed\n");
+				exit(1);
+			}
+			mod->buf += (offset - pa_offset);
+		}
+		for(mod = prg.modules; mod; mod=mod->next) {
+			char *p;
+			if((p=strrchr(mod->name, '.'))) {
+				*p=0;
+			}
+		}
+		for(mod = prg.modules; mod; mod=mod->next) {
+			if(!strcmp(mod->name, "main")) {
+				prg.main = mod;
+			}
+		}
+		if(!prg.main) {
+			fprintf(stderr, "no main module\n");
+			exit(1);
+		}
+
 		// push file
-		duk_push_lstring(ctx, prg.buf, prg.size);
+		duk_push_lstring(ctx, prg.main->buf, prg.main->size);
 		duk_push_string(ctx, argv[1]);
 		
 		// execute file (compile + call)
