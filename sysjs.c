@@ -151,7 +151,7 @@ int main(int argc, char *argv[]) {
 
 	{
 		int rc;
-		char *p, *endp, *start, *m;
+		char *p, *endp, *start, *m, *mainstart;
 		off_t offset, pa_offset;
 		struct mod *mod;
 		
@@ -175,6 +175,7 @@ int main(int argc, char *argv[]) {
 			}
 			p++;
 		}
+		mainstart = p;
 		mod = mod_new();
 		for(start=p;p < endp;p++) {
 			if(*p == '\n') {
@@ -218,6 +219,12 @@ int main(int argc, char *argv[]) {
 			if(!strcmp(mod->name, "main")) {
 				prg.main = mod;
 			}
+		}
+		if(!prg.modules) {
+			prg.main = mod_new();
+			prg.main->buf = mainstart;
+			prg.main->size = prg.size - (mainstart - prg.buf);
+			prg.main->name = "main";
 		}
 		if(!prg.main) {
 			fprintf(stderr, "no main module\n");
