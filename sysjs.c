@@ -109,7 +109,6 @@ static int modSearch(duk_context *ctx)
 {
 	struct mod *mod;
 	const char *id = duk_to_string(ctx, 0);
-	printf("modsearch %s\n", id);
 	for(mod=prg.modules;mod;mod=mod->next) {
 		if(!strcmp(mod->name, id)) {
 			duk_push_lstring(ctx, mod->buf, mod->size);
