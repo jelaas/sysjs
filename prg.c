@@ -180,7 +180,8 @@ int prg_parse_appfile(struct prg *prg)
 	for(mod = prg->modules; mod; mod=mod->next) {
 		char *p;
 		if((p=strrchr(mod->name, '.'))) {
-			*p=0;
+			if(!strcmp(p, ".js"))
+				*p=0;
 		}
 	}
 	for(mod = prg->modules; mod; mod=mod->next) {
