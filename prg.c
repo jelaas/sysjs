@@ -230,9 +230,55 @@ static int prg1_storage(duk_context *ctx)
 	return 1;
 }
 
+static int prg1_storage_write(duk_context *ctx)
+{
+	struct mod *mod;
+	int rc = -1;
+	int id, fd;
+	size_t offset, len;
+
+	fd = duk_to_int(ctx, 0);
+	id = duk_to_int(ctx, 1);
+	offset = duk_to_int(ctx, 2);
+	len = duk_to_int(ctx, 3);
+	
+	mod = prg_storage_byid(id);
+	
+	if(mod) {
+		rc = write(fd, mod->buf + offset, len);
+	}
+	
+	duk_push_int(ctx, rc);
+	return 1;
+}
+
+static int prg1_storage_buffer(duk_context *ctx)
+{
+	struct mod *mod;
+	int id;
+	size_t offset, len;
+	char *buf;
+
+	id = duk_to_int(ctx, 0);
+	offset = duk_to_int(ctx, 1);
+	len = duk_to_int(ctx, 2);
+	
+	mod = prg_storage_byid(id);
+	
+	if(mod) {
+		buf = duk_push_fixed_buffer(ctx, len);
+		memcpy(buf, mod->buf + offset, len);
+	} else {
+		duk_push_undefined(ctx);
+	}
+	return 1;
+}
+
 
 static const duk_function_list_entry prg1_funcs[] = {
 	{ "storage", prg1_storage, 1 /* name */ },
+	{ "storage_write", prg1_storage_write, 4 /* fd, id, offset, len */ },
+	{ "storage_buffer", prg1_storage_buffer, 4 /* id, offset, len */ },
 	{ NULL, NULL, 0 }
 };
 
