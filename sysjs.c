@@ -71,6 +71,10 @@ int main(int argc, char *argv[]) {
 
 	duk_put_prop_string(ctx, -2, "Sys1");  /* -> [ ... global ] */
 
+	duk_push_object(ctx);  /* -> [ ... global obj ] */
+	prg1(ctx);
+	duk_put_prop_string(ctx, -2, "Prg1");  /* -> [ ... global ] */
+
 	prg_push_modsearch(ctx);
 	
 	duk_pop(ctx);

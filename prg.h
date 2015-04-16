@@ -1,4 +1,5 @@
 struct mod {
+  int id;
   char *buf;
   off_t size;
   char *name;
@@ -21,3 +22,6 @@ int prg_register(struct prg *prg);
 int prg_wrapped_compile_execute(duk_context *ctx);
 int prg_push_modsearch(duk_context *ctx);
 int prg_parse_appfile(struct prg *prg);
+struct mod *prg_storage_byname(const char *name);
+struct mod *prg_storage_byid(int id);
+int prg1(duk_context *ctx);

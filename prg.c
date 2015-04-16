@@ -24,6 +24,26 @@ int prg_register(struct prg *prg)
 	return 0;
 }
 
+struct mod *prg_storage_byname(const char *name)
+{
+	struct mod *mod;
+	for(mod = prg_call->modules; mod; mod=mod->next) {
+		if(!strcmp(mod->name, name))
+			return mod;
+	}
+	return (void*)0;
+}
+
+struct mod *prg_storage_byid(int id)
+{
+	struct mod *mod;
+	for(mod = prg_call->modules; mod; mod=mod->next) {
+		if(mod->id == id)
+			return mod;
+	}
+	return (void*)0;
+}
+
 static struct mod *mod_new()
 {
 	struct mod *m;
@@ -98,6 +118,7 @@ int prg_parse_appfile(struct prg *prg)
 	char *p, *endp, *start, *m, *mainstart;
 	off_t offset, pa_offset;
 	struct mod *mod;
+	int id = 1000;
 	
 	// read file prg->name
 	prg->fd = open(prg->name, O_RDONLY);
@@ -121,6 +142,7 @@ int prg_parse_appfile(struct prg *prg)
 	}
 	mainstart = p;
 	mod = mod_new();
+	mod->id = id++;
 	for(start=p;p < endp;p++) {
 		if(*p == '\n') {
 			/* is this a module specification? */
@@ -136,6 +158,7 @@ int prg_parse_appfile(struct prg *prg)
 				mod->next = prg->modules;
 				prg->modules = mod;
 				mod = mod_new();
+				mod->id = id++;
 			} else
 				break;
 			start = p+1;
@@ -173,6 +196,7 @@ int prg_parse_appfile(struct prg *prg)
 	}
 	if(!prg->modules) {
 		prg->main = mod_new();
+		prg->main->id = id++;
 		prg->main->buf = mainstart;
 		prg->main->size = prg->size - (mainstart - prg->buf);
 		prg->main->name = "main";
@@ -184,3 +208,41 @@ int prg_parse_appfile(struct prg *prg)
 	return 0;
 }
 
+static int prg1_storage(duk_context *ctx)
+{
+	const char *name = duk_to_string(ctx, 0);
+	struct mod *mod;
+
+	mod = prg_storage_byname(name);
+
+	if(mod) {
+		duk_push_object(ctx);
+		duk_push_int(ctx, mod->id);
+		duk_put_prop_string(ctx, -2, "id");
+		duk_push_int(ctx, mod->size);
+		duk_put_prop_string(ctx, -2, "size");
+		duk_push_string(ctx, mod->name);
+		duk_put_prop_string(ctx, -2, "name");
+	} else {
+		duk_push_undefined(ctx);
+	}
+	
+	return 1;
+}
+
+
+static const duk_function_list_entry prg1_funcs[] = {
+	{ "storage", prg1_storage, 1 /* name */ },
+	{ NULL, NULL, 0 }
+};
+
+static const duk_number_list_entry prg1_consts[] = {
+	{ NULL, 0.0 }
+};
+
+int prg1(duk_context *ctx)
+{
+	duk_put_function_list(ctx, -1, prg1_funcs);
+	duk_put_number_list(ctx, -1, prg1_consts);
+	return 0;
+}
