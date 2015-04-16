@@ -28,7 +28,7 @@ struct mod *prg_storage_byname(const char *name)
 {
 	struct mod *mod;
 	for(mod = prg_call->modules; mod; mod=mod->next) {
-		if(!strcmp(mod->name, name))
+		if(!strcmp(mod->fullname, name))
 			return mod;
 	}
 	return (void*)0;
@@ -153,6 +153,7 @@ int prg_parse_appfile(struct prg *prg)
 				if(*m != ' ') break;
 				m++;
 				mod->name = strndup(m, p-m);
+				mod->fullname = strdup(mod->name);
 				if(!strcmp(mod->name, "total"))
 					break;
 				mod->next = prg->modules;
@@ -200,6 +201,7 @@ int prg_parse_appfile(struct prg *prg)
 		prg->main->buf = mainstart;
 		prg->main->size = prg->size - (mainstart - prg->buf);
 		prg->main->name = "main";
+		prg->main->fullname = "main";
 	}
 	if(!prg->main) {
 		fprintf(stderr, "no main module\n");
@@ -223,6 +225,8 @@ static int prg1_storage(duk_context *ctx)
 		duk_put_prop_string(ctx, -2, "size");
 		duk_push_string(ctx, mod->name);
 		duk_put_prop_string(ctx, -2, "name");
+		duk_push_string(ctx, mod->fullname);
+		duk_put_prop_string(ctx, -2, "fullname");
 	} else {
 		duk_push_undefined(ctx);
 	}

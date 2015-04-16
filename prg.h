@@ -2,7 +2,7 @@ struct mod {
   int id;
   char *buf;
   off_t size;
-  char *name;
+  char *name, *fullname;
   struct mod *next;
 };
 
